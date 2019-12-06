@@ -5,8 +5,9 @@
 #include <assert.h>
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
 //Define custom data types
-
-size_t key_space = 0; //when it reaches the end should come back to the begining
+// todo: it change to zero after returning from the create_hashmap func
+static const size_t key_space = 1024; 
+//when it reaches the end should come back to the begining
 
 /*
 	Need to define 2 structures:
@@ -37,6 +38,7 @@ typedef struct HashMap
 */
 HashMap *create_hashmap(size_t key_space){
 	key_space = key_space;
+	//assert(key_space == 0);
 	HashMap *table = malloc(sizeof(HashMap)); //Allocate space for the table
 	assert(table != NULL);
 	table -> entries = malloc(sizeof(entry *) * key_space);
@@ -45,6 +47,7 @@ HashMap *create_hashmap(size_t key_space){
 	// Later if its not NULL we already know there is an entry and collision should be handled
 	for(size_t i = 0; i < key_space; i++){
 		table -> entries[i] = NULL;
+		//printf("the entries are: %s\n", table->entries[i]);
 	}
 
 	return table;
@@ -58,21 +61,27 @@ unsigned int hash(const char *key){
 		hash_code += key[i];
 		i += 1;
 	}
-	hash_code %= 10; // Apply modulo to the result so the value is in the 0 to key_space - 1 range
+	if (key_space == 0)
+		hash_code = 0;
+	else
+		hash_code %= key_space; // Apply modulo to the result so the value is in the 0 to key_space - 1 range
 	return hash_code;
 }
 
 void insert_data(HashMap *hm, const char *key, void *data, ResolveCollisionCallback resolve_collision){
 	//apply the hash function on the key to calculate the entry index for the key
 	unsigned int index = hash(key);
-	entry *node	= (hm->entries[index]);
+	entry *node	= malloc(sizeof(entry));
+	node = (hm->entries[index]);
 	if (node == NULL)
 	{
-		entry *pair = malloc(sizeof(entry));
-		strcpy(pair->key, key);
-		//strcpy(pair->value, data); //no need to copy just directly move the pointerof data to value
-		pair->value = data;
-		pair->next = NULL;
+		//entry *pair = malloc(sizeof(entry));
+		node->key = malloc(strlen(key) + 1);
+		// error in coppying the key
+		memcpy(node->key, key, 8);
+		//strcpy(ndoe->value, data); //no need to copy just directly move the pointerof data to value
+		node->value = data;
+		node->next = NULL;
 		return;
 	}
 	else{
@@ -90,6 +99,7 @@ void insert_data(HashMap *hm, const char *key, void *data, ResolveCollisionCallb
 void *get_data(HashMap *hm, const char *key){
 	//apply the hash function on the key to calculate the entry index for the key
 	unsigned int index = hash(key);
+	//error : index is 195 but the entry is empty which should not
 	entry *node	= (hm->entries[index]);
 	if (node == NULL)
 		return NULL;

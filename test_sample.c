@@ -38,6 +38,9 @@ int main() {
 
 	// Insert ("ab" -> "CSE2425").
 	insert_data(hm, key_1, string_1, resolve_collision);
+	//erro: recieve sigseg at get_data
+	// error: problem is data gets written on pair but not node and 
+	// get_data node is used
 	assert(memcmp(get_data(hm, key_1), string_1, mystrlen(string_1)) == 0);
 
 	// Insert ("cd" -> "Embedded").
