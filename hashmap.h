@@ -3,12 +3,10 @@
 #include <stdint.h>
 #include <string.h>
 #include <assert.h>
-/////////////////////////////////////////////////////////////////////////////////////////////////////////
-//Define custom data types
-// todo: it change to zero after returning from the create_hashmap func
-static const size_t key_space = 1024; 
-//when it reaches the end should come back to the begining
 
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+//Define custom data types
 /*
 	Need to define 2 structures:
 		1- For the hash table
@@ -27,29 +25,30 @@ typedef struct entry
 
 typedef struct HashMap
 {
-	entry **entries; //The hashtable is an array of pointers to entries
+	entry **entries; //The hashtable is an array of pointers to first element of a linked list
+	size_t h_size;
 } HashMap;
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 // Helper functions
 /*
 	This function should allocate enough memoryto fit key_space(rows) buckets.
-	The allocated memory should be zeroed?????
+	The allocated memory should be NULLED
 */
 HashMap *create_hashmap(size_t key_space){
-	key_space = key_space;
-	//assert(key_space == 0);
+	assert(key_space > 0);
 	HashMap *table = malloc(sizeof(HashMap)); //Allocate space for the table
 	assert(table != NULL);
-	table -> entries = malloc(sizeof(entry *) * key_space);
+	table -> h_size = key_space;
+	table -> entries = malloc(sizeof(entry *) * table -> h_size);
 
 	// Populate the table with NULL pointers
 	// Later if its not NULL we already know there is an entry and collision should be handled
-	for(size_t i = 0; i < key_space; i++){
+	for(size_t i = 0; i < table -> h_size; i++){
 		table -> entries[i] = NULL;
 		//printf("the entries are: %s\n", table->entries[i]);
 	}
-
 	return table;
 }
 
@@ -61,16 +60,16 @@ unsigned int hash(const char *key){
 		hash_code += key[i];
 		i += 1;
 	}
-	if (key_space == 0)
-		hash_code = 0;
-	else
-		hash_code %= key_space; // Apply modulo to the result so the value is in the 0 to key_space - 1 range
 	return hash_code;
 }
 
+
 void insert_data(HashMap *hm, const char *key, void *data, ResolveCollisionCallback resolve_collision){
+	assert(key != NULL);
 	//apply the hash function on the key to calculate the entry index for the key
 	unsigned int index = hash(key);
+	index = index % hm->h_size;
+
 	entry *entry_pointer = (hm->entries[index]);
 	if (entry_pointer == NULL)
 	{
@@ -87,7 +86,7 @@ void insert_data(HashMap *hm, const char *key, void *data, ResolveCollisionCallb
 	}
 	else{
 		// The bucket has entries
-		printf("resolving consllision!\n");
+		//printf("resolving consllision!\n");
 		while(entry_pointer->next != NULL){
 			if (strcmp(entry_pointer->key, key) == 0){
 				entry_pointer->value = resolve_collision(entry_pointer->value, data);
@@ -120,10 +119,11 @@ void insert_data(HashMap *hm, const char *key, void *data, ResolveCollisionCallb
 	}
 }
 
+
 void *get_data(HashMap *hm, const char *key){
 	//apply the hash function on the key to calculate the entry index for the key
 	unsigned int index = hash(key);
-	// error: The entry pointer is not empty but the key is empty
+	index = index % hm->h_size;
 	entry *entry_pointer	= (hm->entries[index]);
 	if (entry_pointer == NULL)
 		return NULL;
@@ -143,48 +143,49 @@ void *get_data(HashMap *hm, const char *key){
 	return NULL;
 }
 
+
 void iterate(HashMap *hm, callback callback){
-	// check if the callbacks exists
-	//iterate over th entire hashmap
-	for (size_t i = 0; i < key_space; ++i){
+	for (size_t i = 0; i < (hm->h_size); ++i){
 		entry *entry_pointer = (hm->entries[i]);
 		if (entry_pointer == NULL)
 			continue;
 		else{
-			printf("In index %ld\n", i);
+			//printf("In index %ld\n", i);
 			do{
 				callback(entry_pointer->key, entry_pointer->value);
 				entry_pointer = entry_pointer->next;
-			} while(entry_pointer != NULL);
-			/*
-			while(entry_pointer->next != NULL){
-				callback(entry_pointer->key, entry_pointer->value);
-			]
-			*/
-			
+			} while(entry_pointer != NULL);			
 		}
 	}
 }
 
+
 void remove_data(HashMap *hm, const char *key, DestroyDataCallback destroy_data){
 	unsigned int index = hash(key);
+	index = index % hm->h_size;
 	entry *entry_pointer = (hm->entries[index]);
-	entry *temp = malloc(sizeof(entry *));
+	entry *prev = entry_pointer;
+	int x = 0;
 
 	if (entry_pointer != NULL){
 		do{
 			if (strcmp(entry_pointer->key, key) == 0){
-				temp = entry_pointer->next;
-				//free(entry_pointer->value);
+				prev->next = entry_pointer->next;
+				if (x == 0)
+					hm->entries[index] = entry_pointer->next;	
+				else
+					hm->entries[index] = prev;
+				if (destroy_data != NULL)
+					destroy_data(entry_pointer->value);
 				free(entry_pointer->key);
 				free(entry_pointer);
-				hm->entries[index] = temp;
 				return;
-				//if (entry_pointer == NULL)
-					//return;
 			}
-			else
+			else{
+				prev = entry_pointer;
 				entry_pointer = entry_pointer->next;
+				x += 1;
+			}
 
 		} while(entry_pointer != NULL);
 
@@ -192,44 +193,32 @@ void remove_data(HashMap *hm, const char *key, DestroyDataCallback destroy_data)
 
 	else
 		return;
-
-	/*
-	while(entry_pointer != NULL){
-		if (strcmp(entry_pointer->key, key) == 0){ //if the matching key was found in the linked list
-			if (destroy_data != NULL)
-				destroy_data(entry_pointer->value);
-			else
-				free(entry_pointer);	
-		}
-
-		//save the next value in a variable 
-		//entry *temp = entry_pointer->next;
-		//free(entry_pointer);
-		//free the entry_pointer
-		entry_pointer = entry_pointer->next;
-
-	}
-	*/
 }
+
 
 void delete_hashmap(HashMap *hm, DestroyDataCallback destroy_data){
 	assert(hm != NULL);
-	printf("Deallocating all elements of the hashmap!\n");
+	//printf("Deallocating all elements of the hashmap!\n");
 	
-	for (size_t i = 190; i < key_space; ++i){
+	for (size_t i = 0; i < (hm->h_size); ++i){
 		entry *entry_pointer = (hm->entries[i]);
 
 		if (entry_pointer != NULL){
 			entry *temp = entry_pointer->next;
 			while(entry_pointer != NULL){
-			temp = entry_pointer->next;
-			free(entry_pointer->key);
-			free(entry_pointer);
-			entry_pointer = temp;
+				printf("Found stuff at index %ld with key = %s and value = %s\n", \
+					i, entry_pointer->key, entry_pointer->value);
+				temp = entry_pointer->next;
+				if (destroy_data != NULL)
+					destroy_data(entry_pointer->value);
+				free(entry_pointer->key);
+				free(entry_pointer);
+				entry_pointer = temp;
+			}
 		}
 		else
 			continue;
-		}
+		
 		//destroy_data(); is it necessary?
 		// yes cause u cant just free the first element of the linked list
 	}

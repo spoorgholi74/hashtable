@@ -53,6 +53,9 @@ int main() {
 
 	// Insert ("ab" -> "Embedded").
 	insert_data(hm, key_1, string_2, resolve_collision);
+	insert_data(hm, key_1, string_1, resolve_collision);
+	insert_data(hm, key_1, string_4, resolve_collision);
+	insert_data(hm, key_1, string_2, resolve_collision);
 	assert(memcmp(get_data(hm, key_1), string_2, mystrlen(string_2)) == 0);
 
 	// Insert (("bc") -> "Soroosh")
@@ -77,25 +80,34 @@ int main() {
 	// Delete key "cd".
 	remove_data(hm, key_2, NULL);
 	assert(get_data(hm, key_2) == NULL);
+	//printf("\nRound \n");
+	//iterate(hm, print_element);
 
 	// Delete key "ab".
 	remove_data(hm, key_1, NULL);
 	assert(get_data(hm, key_1) == NULL);
+	//printf("\nRound \n");
+	//iterate(hm, print_element);
 
 	// Delete key "ad".
 	remove_data(hm, key_3, NULL);
 	assert(get_data(hm, key_3) == NULL);
+	//printf("\nRound \n");
+	//iterate(hm, print_element);
 
 	remove_data(hm, key_4, NULL);
 	assert(get_data(hm, key_4) == NULL);
+	//printf("\nRound \n");
+	//iterate(hm, print_element);
 
 	remove_data(hm, key_5, NULL);
 	assert(get_data(hm, key_5) == NULL);
+	//printf("\nRound \n");
+	//iterate(hm, print_element);
 
 	// Delete the hash map.
-	//insert_data(hm, key_1, string_1, resolve_collision);
 	delete_hashmap(hm, NULL);
-	//assert(get_data(hm, key_1) == NULL);
+
 
 #ifdef COUNTING_WORDS
 	// Create a temporary file

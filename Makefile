@@ -32,7 +32,7 @@ test: compile
 	./test
 
 valgrind:
-	valgrind --tool=memcheck ./test
+	valgrind  --leak-check=full --tool=memcheck ./test
 
 submit: $(DEPS)
 	zip $(SRC:.c=.zip) $(DEPS)
