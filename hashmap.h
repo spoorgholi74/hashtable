@@ -71,46 +71,73 @@ unsigned int hash(const char *key){
 void insert_data(HashMap *hm, const char *key, void *data, ResolveCollisionCallback resolve_collision){
 	//apply the hash function on the key to calculate the entry index for the key
 	unsigned int index = hash(key);
-	entry *node	= malloc(sizeof(entry));
-	node = (hm->entries[index]);
-	if (node == NULL)
+	entry *entry_pointer = (hm->entries[index]);
+	if (entry_pointer == NULL)
 	{
-		//entry *pair = malloc(sizeof(entry));
+		// Allocate memory to the node of a linked list
+		entry *node = malloc(sizeof(entry));
 		node->key = malloc(strlen(key) + 1);
-		// error in coppying the key
-		memcpy(node->key, key, 8);
-		//strcpy(ndoe->value, data); //no need to copy just directly move the pointerof data to value
+		strcpy(node->key, key);
+		// No need to copy just directly move the pointerof data to value
 		node->value = data;
 		node->next = NULL;
+		// Save the node(linked list) to the array of pointers
+		hm->entries[index] = node;
 		return;
 	}
 	else{
-		printf("Collision occured!\n");
-		void *solved = resolve_collision(node->value, data);
-		// what should be stored in the bucket?
-		node->value = solved;
+		// The bucket has entries
+		printf("resolving consllision!\n");
+		while(entry_pointer->next != NULL){
+			if (strcmp(entry_pointer->key, key) == 0){
+				entry_pointer->value = resolve_collision(entry_pointer->value, data);
+				//hm->entries[index] = entry_pointer;
+				return;
+			}
+			else
+				entry_pointer = entry_pointer->next;
+		}
+		// Reaches here if it reaches the last node in the linked list
+		// if the key matches update otherwise create a new node
+		if (strcmp(entry_pointer->key, key) == 0){
+				entry_pointer->value = resolve_collision(entry_pointer->value, data);
+				return;
+			}
+		else{
+			//create a new entry
+			entry *new_node = malloc(sizeof(entry));
+			new_node->key = malloc(strlen(key) + 1);
+			strcpy(new_node->key, key);
+			// No need to copy just directly move the pointerof data to value
+			new_node->value = data;
+			entry_pointer->next = new_node;
+			new_node->next = NULL;
+			// Save the new_node(linked list) to the array of pointers
+			//hm->entries[index] = new_node;
+			return;
+		}	
 		return;
 	}
-	printf("should not reach this part!\n");
-	assert(1);
-	return;
 }
 
 void *get_data(HashMap *hm, const char *key){
 	//apply the hash function on the key to calculate the entry index for the key
 	unsigned int index = hash(key);
-	//error : index is 195 but the entry is empty which should not
-	entry *node	= (hm->entries[index]);
-	if (node == NULL)
+	// error: The entry pointer is not empty but the key is empty
+	entry *entry_pointer	= (hm->entries[index]);
+	if (entry_pointer == NULL)
 		return NULL;
-	else
-		//walk through each node in that index to find a matching key
-		while(node != NULL){
-			if (strcmp(node->key,key) == 0)
-				return node->value; //return the value if the key match
+	else{
+		//walk through each entry_pointer in that index to find a matching key
+		if (entry_pointer->key == NULL)
+			return NULL;
+		while(entry_pointer != NULL){
+			if (strcmp(entry_pointer->key,key) == 0)
+				return entry_pointer->value; //return the value if the key match
 			else
-				node = node->next; //else fo to the next entry
+				entry_pointer = entry_pointer->next; //else fo to the next entry
 		}
+	}
 
 	// There was entry but no key found so return NULL
 	return NULL;
@@ -120,53 +147,92 @@ void iterate(HashMap *hm, callback callback){
 	// check if the callbacks exists
 	//iterate over th entire hashmap
 	for (size_t i = 0; i < key_space; ++i){
-		entry *node = (hm->entries[i]);
-		if (node == NULL)
+		entry *entry_pointer = (hm->entries[i]);
+		if (entry_pointer == NULL)
 			continue;
 		else{
 			printf("In index %ld\n", i);
-			while(node->next != NULL){
-				callback(node->key, node->value);
-			}
+			do{
+				callback(entry_pointer->key, entry_pointer->value);
+				entry_pointer = entry_pointer->next;
+			} while(entry_pointer != NULL);
+			/*
+			while(entry_pointer->next != NULL){
+				callback(entry_pointer->key, entry_pointer->value);
+			]
+			*/
+			
 		}
 	}
 }
 
 void remove_data(HashMap *hm, const char *key, DestroyDataCallback destroy_data){
 	unsigned int index = hash(key);
-	entry *node	= (hm->entries[index]);
+	entry *entry_pointer = (hm->entries[index]);
+	entry *temp = malloc(sizeof(entry *));
 
-	while(node != NULL){
-		if (strcmp(node->key, key) == 0){ //if the matching key was found in the linked list
-			if (destroy_data != NULL)
-				destroy_data(node->value);
+	if (entry_pointer != NULL){
+		do{
+			if (strcmp(entry_pointer->key, key) == 0){
+				temp = entry_pointer->next;
+				//free(entry_pointer->value);
+				free(entry_pointer->key);
+				free(entry_pointer);
+				hm->entries[index] = temp;
+				return;
+				//if (entry_pointer == NULL)
+					//return;
+			}
 			else
-				free(node);	
-		}
-		//save the next value in a variable 
-		//entry *temp = node->next;
-		//free(node);
-		//free the node
-		node = node->next;
+				entry_pointer = entry_pointer->next;
+
+		} while(entry_pointer != NULL);
 
 	}
+
+	else
+		return;
+
+	/*
+	while(entry_pointer != NULL){
+		if (strcmp(entry_pointer->key, key) == 0){ //if the matching key was found in the linked list
+			if (destroy_data != NULL)
+				destroy_data(entry_pointer->value);
+			else
+				free(entry_pointer);	
+		}
+
+		//save the next value in a variable 
+		//entry *temp = entry_pointer->next;
+		//free(entry_pointer);
+		//free the entry_pointer
+		entry_pointer = entry_pointer->next;
+
+	}
+	*/
 }
 
 void delete_hashmap(HashMap *hm, DestroyDataCallback destroy_data){
 	assert(hm != NULL);
-	//call desttroy data for every element(with data pointer of the element)
 	printf("Deallocating all elements of the hashmap!\n");
-	for (size_t i = 0; i < key_space; ++i){
-		entry *node	= (hm->entries[i]);
-		while(node != NULL){
-			entry *temp = node->next;
-			if (destroy_data != NULL)
-				destroy_data(node->value);
-			free(node);
-			node->next = temp;
+	
+	for (size_t i = 190; i < key_space; ++i){
+		entry *entry_pointer = (hm->entries[i]);
+
+		if (entry_pointer != NULL){
+			entry *temp = entry_pointer->next;
+			while(entry_pointer != NULL){
+			temp = entry_pointer->next;
+			free(entry_pointer->key);
+			free(entry_pointer);
+			entry_pointer = temp;
+		}
+		else
+			continue;
 		}
 		//destroy_data(); is it necessary?
 		// yes cause u cant just free the first element of the linked list
 	}
+	free(hm->entries);
 	free(hm);
 }

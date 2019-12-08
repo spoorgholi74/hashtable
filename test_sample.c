@@ -31,16 +31,16 @@ int main() {
 	char * string_1 = "CSE2425";
 	char * string_2 = "Embedded";
 	char * string_3 = "Software";
+	char * string_4 = "Soroosh";
+
 	const char * key_1    = "ab";
 	const char * key_2    = "cd";
 	const char * key_3    = "ad";
 	const char * key_4    = "xy";
+	const char * key_5    = "bc";
 
 	// Insert ("ab" -> "CSE2425").
 	insert_data(hm, key_1, string_1, resolve_collision);
-	//erro: recieve sigseg at get_data
-	// error: problem is data gets written on pair but not node and 
-	// get_data node is used
 	assert(memcmp(get_data(hm, key_1), string_1, mystrlen(string_1)) == 0);
 
 	// Insert ("cd" -> "Embedded").
@@ -54,6 +54,10 @@ int main() {
 	// Insert ("ab" -> "Embedded").
 	insert_data(hm, key_1, string_2, resolve_collision);
 	assert(memcmp(get_data(hm, key_1), string_2, mystrlen(string_2)) == 0);
+
+	// Insert (("bc") -> "Soroosh")
+	insert_data(hm, key_5, string_4, resolve_collision);
+	assert(memcmp(get_data(hm, key_5), string_4, mystrlen(string_4)) == 0);
 
 	// Get data for a not inserted key.
 	assert(get_data(hm, key_4) == NULL);
@@ -82,8 +86,16 @@ int main() {
 	remove_data(hm, key_3, NULL);
 	assert(get_data(hm, key_3) == NULL);
 
+	remove_data(hm, key_4, NULL);
+	assert(get_data(hm, key_4) == NULL);
+
+	remove_data(hm, key_5, NULL);
+	assert(get_data(hm, key_5) == NULL);
+
 	// Delete the hash map.
+	//insert_data(hm, key_1, string_1, resolve_collision);
 	delete_hashmap(hm, NULL);
+	//assert(get_data(hm, key_1) == NULL);
 
 #ifdef COUNTING_WORDS
 	// Create a temporary file
